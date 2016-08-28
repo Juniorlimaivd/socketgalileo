@@ -8,6 +8,9 @@
 #include <string>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <sys/types.h>
 
 
 #define BUFF_SIZE 256
@@ -39,7 +42,8 @@ class Sockt
     int socktFileDescriptor;
     struct sockaddr_in socktAddr;
   private:
-
+    port gate;
+    std::string ip;
 };
 
 #endif

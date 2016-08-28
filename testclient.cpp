@@ -12,7 +12,7 @@
 
 #define BUFF_SIZE 256
 
-static unsigned short port = 55555;
+static unsigned short port = 1249;
 
 void interact_with_server(int sfd)
 {

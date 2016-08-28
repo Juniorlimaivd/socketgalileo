@@ -1,18 +1,25 @@
 #include "socketGalileo.hpp"
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <sys/types.h>
+
 
 Sockt::Sockt(int domain, int type, int protocol)
 {
   this->socktFileDescriptor = socket(domain, type, protocol);
+  if(this->socktFileDescriptor < 0)
+  {
+    printf("Error creating socket.\n");
+    exit(EXIT_FAILURE);
+  }
 }
 
 Sockt::Sockt(int filedescriptor)
 {
   this->socktFileDescriptor = filedescriptor;
+
+  if(this->socktFileDescriptor < 0)
+  {
+    printf("Bad file descriptor passed.\n");
+    exit(EXIT_FAILURE);
+  }
 }
 
 Sockt::Sockt()
@@ -35,7 +42,17 @@ int Sockt::connect(std::string ip, port gate)
   int result;
   result = ::connect(this->socktFileDescriptor, (struct sockaddr*) &this->socktAddr, sizeof(this->socktAddr));
 
-  return result;
+  if(result<0)
+  {
+    printf("Error trying to connect with socket. Please check ip and port.\n");
+    exit(EXIT_FAILURE);
+  }else
+  {
+      this->gate = gate;
+      this->ip = ip;
+      return result;
+  }
+
 }
 
 int Sockt::bind(std::string ip, port gate)
@@ -58,7 +75,14 @@ int Sockt::bind(std::string ip, port gate)
   this->socktAddr.sin_family = AF_INET;
   this->socktAddr.sin_port = htons(gate);
   result = ::bind(this->socktFileDescriptor, (struct sockaddr *) &this->socktAddr, sizeof(this->socktAddr));
-  if(result!=0) printf("error binding\n");
+  if(result<0)
+  {
+    printf("Error try to bind with port. Please check port disponibility.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->ip = ip;
+  this->gate = gate;
   return result;
 }
 
@@ -78,9 +102,9 @@ int Sockt::send(std::string data)
       bytes_written = write(this->socktFileDescriptor,
                                     &buffer[total_bytes_written],
                                     data.size() - total_bytes_written);
-      if (bytes_written == -1)
+      if (bytes_written < 0)
       {
-          printf("Failed to send all bytes. %ld bytes sended.",bytes_written);
+          printf("Failed to send all bytes. %ld bytes sended.",total_bytes_written);
           break;
       }
       total_bytes_written += bytes_written;
@@ -104,7 +128,7 @@ std::string Sockt::recv(int size)
     int res = ::read(this->socktFileDescriptor,buffer, sizeof(buffer));
     if(res<=0)
     {
-
+      printf("Error reading buffer.\n");
       return "";
     }
     else
@@ -116,7 +140,7 @@ std::string Sockt::recv(int size)
   else
   {
     printf("error: bad file descriptor\n");
-    return "";
+    exit(EXIT_FAILURE);
   }
 
 
@@ -124,13 +148,15 @@ std::string Sockt::recv(int size)
 
 void Sockt::listen(int conections)
 {
-  ::listen(this->socktFileDescriptor, conections);
+  int result = ::listen(this->socktFileDescriptor, conections);
+  if(result<0)
+  {
+    printf("error trying to listen to port %hu.",this->gate);
+  }
 }
 
 void Sockt::accept(Sockt* clientSockt)
 {
-
-
   unsigned int supplied_len;
   unsigned int *ip_suppliedlen_op_storedlen;
   supplied_len = sizeof(clientSockt->socktAddr);
@@ -141,7 +167,8 @@ void Sockt::accept(Sockt* clientSockt)
 
   if(clientSockt->socktFileDescriptor<0)
   {
-    printf("error connecting with client.\n");
+    printf("Error connecting with client.\n");
+    exit(EXIT_FAILURE);
   }
 
 }
@@ -149,5 +176,5 @@ void Sockt::accept(Sockt* clientSockt)
 Sockt::~Sockt()
 {
   close(this->socktFileDescriptor);
-  delete this;
+  
 }
